@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load player_filters %}
+
+{% block content %}
+<div class="container">
+	<div class="column span-2">
+		<div id="controller_play" class="controller_button">&nbsp;</div>
+	</div>
+	<div class="column span-20">
+		<div id="controller_info" class="controller_infolabel">&nbsp;</div>
+	</div>
+	<div class="column span-2 last">
+		<div id="controller_skip" class="controller_button">&nbsp;</div>
+	</div>
+</div>
+
+<div class="container">
+<table>
+	<thead>
+		<tr>
+			<th class="playlist_votes lean_center">Votes</td>
+			<th class="playlist_name">Name</td>
+			<th class="playlist_time lean_right">Time</td>
+			<th class="playlist_artist">Artist</td>
+			<th class="playlist_album">Album</td>
+		</td>
+	</thead>
+	<tbody>
+	{% for song in songs %}
+		<tr class="{% cycle 'odd' 'even' %}">
+			<td class="playlist_votes">
+				<a class="vote_open" href="/vote/{{ song.id }}/">&nbsp;</a>
+				<div class="votes_count">{{ song.nr_votes }}</div>
+			</td>
+			<td>{{ song.title }}</td>
+			<td class="lean_right">{{ song.duration|sec_to_hms }}</td>
+			<td>{{ song.artist }}</td>
+			<td>{{ song.album }}</td>
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+
+<div class="container">
+<div class="column span-8">
+	<div id="browser_playlist" class="browser_box">
+		<ul>
+			<li>hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+			<li>hi</li>
+		</ul>
+	</div>
+</div>
+<div class="column span-8">
+	<div id="browser_artist" class="browser_box">&nbsp;</div>
+</div>
+<div class="column span-8 last">
+	<div id="browser_song" class="browser_box">&nbsp;</div>
+</div>
+</div>
+
+<div class="container">
+	<div class="column span-24 last"><a href="/accounts/login/">login</a> - <a href="/accounts/logout/">logout</a></div>
+	{{request.user.username}}
+	<div class="column span-24 last"><a href="/start/">start</a> - <a href="/stop/">stop</a></div>
+</div>
+	
+{% endblock %}
+

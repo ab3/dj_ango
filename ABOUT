@@ -1,0 +1,13 @@
+
+webplayer
+	- admin
+	- models
+	- urls
+	- views
+
+musicplayer
+	- mplayer
+
+daapbrowser=
+
+youtubebrowser

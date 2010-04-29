@@ -1,0 +1,132 @@
+body {
+	padding-top: 20px;
+}
+
+table {
+	border-collapse:collapse;
+	margin-bottom: 0px;
+}
+
+table, td, th {
+	border: 1px solid #ccc;
+}
+
+thead th {
+	background-color: #eee;
+	/* background: #eee url(http://www.datatables.net/media/css/jui_themes/smoothness/images/ui-bg_glass_75_e6e6e6_1x400.png) repeat-x 50% 50%; */
+}
+
+th.playlist_votes {
+	width: 50px;
+	text-align: center;
+}
+
+th.playlist_name {
+	width: 270px;
+}
+
+th.playlist_time {
+	width: 49px;
+}
+
+th.playlist_artist {
+	width: 270px;
+}
+
+th.playlist_album {
+	width: 260px;
+}
+
+td.playlist_votes {
+	text-align: right;
+}
+
+td.lean_right, th.lean_right {
+	text-align: right;
+}
+
+th.lean_center {
+	text-align: center;
+}
+
+.container{
+	margin-bottom: 10px;
+	text-align: center;
+}
+
+.odd {
+    
+}
+
+.even {
+	background-color: #eee;
+    /*background-color: #eef7fe;*/
+}
+
+#controller_play {
+	background: url(/static/img/pause.png) no-repeat;
+}
+
+#controller_skip {
+	background: url(/static/img/skip.png) no-repeat;
+}
+
+.controller_button {
+	border: 0px solid #ccc;
+	height: 70px;
+}
+
+.controller_infolabel {
+	border: 1px solid #ccc;
+	height: 70px;
+}
+
+.browser_box {
+	border: 1px solid #ccc;
+	overflow: auto;
+}
+
+a.vote_open {
+	background: url(/static/img/thumb-up-bw.png) no-repeat;
+	width: 20px;
+	height: 16px;
+	float: left;
+	text-decoration: none;
+}
+
+a.vote_open:hover {
+	background: url(/static/img/thumb-up-c.png) no-repeat;
+	width: 20px;
+	height: 16px;
+	float: left;
+	text-decoration: none;
+}
+
+a.vote_passed {
+	background: url(/static/img/thumb-up-c.png) no-repeat;
+	width: 16px;
+	height: 16px;
+	float: left;
+	text-decoration: none;
+}
+
+.votes_count {
+	float: right;
+	display: block;
+	
+}
+
+#browser_playlist {
+	background-color: white;
+	height: 200px;
+}
+
+#browser_artist {
+	background-color: white;
+	height: 200px;
+}
+
+#browser_song {
+	background-color: white;
+	height: 200px;
+}
