@@ -4,7 +4,7 @@ from django.db.models import Model, IntegerField, CharField, TextField, DateTime
 from django.contrib.auth.models import User
 
 class Song(Model):
-    title = CharField(max_length=120, blank=True)
+    title = CharField(max_length=120)
     album = CharField(max_length=120, blank=True)
     artist = CharField(max_length=120, blank=True)
     duration = IntegerField(blank=True, help_text='duration of the song in seconds')

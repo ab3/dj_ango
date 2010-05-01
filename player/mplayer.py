@@ -4,6 +4,7 @@ import sys
 import logging
 from select import select, error
 from socket import socket, AF_UNIX, SOCK_DGRAM
+from SocketServer import UnixDatagramServer, TCPServer, BaseRequestHandler, StreamRequestHandler
 from subprocess import Popen, PIPE
 from multiprocessing import Process, Queue
 from django.db.models import Count
@@ -94,6 +95,21 @@ class MPlayerWrapper:
     def stop(self):
         self._write('stop\n')
 
+class MPlayerHandler(StreamRequestHandler):
+    def __init__(self):
+        self._mp = MPlayerWrapper()
+        self._active = False
+    
+    def dispatch(self, s):
+        pass
+    
+    def handle(self):
+        data = self.rfile.readline().strip()
+        dispatch(data)
+        self.wfile.write('hello')
+        
+        
+
 
 class MPlayerDispatch:
     def __init__(self, file_socket):
@@ -148,6 +164,8 @@ class MPlayerDispatch:
                     # delete song
                     #self._mp.loadfile(song.file_path)
                 data = data.replace('skip', '', 1)
+            elif data.startwith('info'):
+                logging.debug('info')
 
             # Check if mplayer is still playing
             # filename will return a empty string if
@@ -219,6 +237,12 @@ class MPlayerControl:
     def stop(cls):
         s = cls.get_socket()
         s.send('stop')
+        s.close()
+    
+    @classmethod
+    def info(cls):
+        s = cls.get_socket()
+        s.send('info')
         s.close()
 
 

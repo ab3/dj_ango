@@ -4,13 +4,17 @@
 {% block content %}
 <div class="container">
 	<div class="column span-2">
-		<div id="controller_play" class="controller_button">&nbsp;</div>
+		<a id="controller_play" class="controller_button" href="/play/">&nbsp;</a>
+		<a id="controller_pause" class="controller_button hidden" href="/pause/">&nbsp;</a>
 	</div>
 	<div class="column span-20">
-		<div id="controller_info" class="controller_infolabel">&nbsp;</div>
+		<div id="controller_info" class="controller_infolabel">
+			<div class="">DJ - ANGO</div>
+			<div>{{ current_song.title }} - {{ current_song.album }} - {{ current_song.artist }}</div>
+		</div>
 	</div>
 	<div class="column span-2 last">
-		<div id="controller_skip" class="controller_button">&nbsp;</div>
+		<a id="controller_skip" class="controller_button" href="/skip/">&nbsp;</a>
 	</div>
 </div>
 
@@ -46,20 +50,7 @@
 <div class="column span-8">
 	<div id="browser_playlist" class="browser_box">
 		<ul>
-			<li>hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii</li>
-			<li>hi</li>
-			<li>hi</li>
-			<li>hi</li>
-			<li>hi</li>
-			<li>hi</li>
-			<li>hi</li>
-			<li>hi</li>
-			<li>hi</li>
-			<li>hi</li>
-			<li>hi</li>
-			<li>hi</li>
-			<li>hi</li>
-			<li>hi</li>
+			<li>hiiiiiiiiiiiiiiiiiiiiiiiiiiiiii</li>
 			<li>hi</li>
 			<li>hi</li>
 			<li>hi</li>
@@ -87,6 +78,26 @@
 <div class="column span-8 last">
 	<div id="browser_song" class="browser_box">&nbsp;</div>
 </div>
+</div>
+
+<div class="container">
+	<div class="column span-24 last">
+		<div id="browser_uploadfile">
+			<form>
+				<div>
+					<label>Name: </label><input type="text"/>
+					<label>Artist: </label><input type="text"/>
+					<label>Album: </label><input type="text"/>
+				</div>
+				<div>
+					<label>MP3 File: </label>
+					<input id="filelink_inputtext" type="text"/>
+					<input type="button" value="Choose File"/>
+					<input type="button" value="Submit"/>
+				</div>
+			</form>
+		</div>
+	</div>
 </div>
 
 <div class="container">

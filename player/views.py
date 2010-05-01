@@ -5,15 +5,25 @@ from django.core.urlresolvers import reverse
 from django.db.models import Count, F
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from models import Song
 from mplayer import MPlayerControl
+from models import Song
+from forms import UploadMp3FileForm
 
 import logging
+
+class N:
+    pass
 
 def index(request):
     songs = Song.objects.filter(is_playing=False).annotate(nr_votes=Count('votes')).order_by('-nr_votes')
     votes = songs.filter(votes=request.user)
-    return render_to_response('player/index.html', {'request': request, 'songs': songs, 'votes': votes})
+    current_song = N()
+    try:
+        current_song = Song.objects.filter(is_playing=True)[0]
+    except IndexError:
+        current_song.title = 'hello'
+    
+    return render_to_response('player/index.html', {'request': request, 'songs': songs, 'votes': votes, 'current_song': current_song})
 
 def start(request):
     MPlayerControl.start()
@@ -46,6 +56,14 @@ def add(request):
 
 def remove(request):
     return HttpResponse('hello')
+
+def upload_file(request):
+    if request.method == 'POST':
+        pass
+    else:
+        pass
+    
+        
 
 
 @login_required
