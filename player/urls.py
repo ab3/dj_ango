@@ -10,6 +10,9 @@ urlpatterns = patterns('',
     url(r'^add/$', views.add, name='player-add'),
     url(r'^vote/(?P<song_id>\d+)/$', views.vote, name='player-vote'),
     
+    # Adding File
+    url(r'^upload_file/$', views.upload_file, name='player-upload_file'),
+    
     # Active
     url(r'^start/$', views.start, name='player-start'),
     url(r'^stop/$', views.stop, name='player-stop'),

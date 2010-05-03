@@ -1,20 +1,23 @@
 import os
+import logging
 
-MUSIC_PATH = '/Users/abe/Code/dj_ang/music/'
+MUSIC_PATH = '/Users/abe/Code/dj_ango/music/'
 
 def handle_upload_mp3file(f):
-    file_saved = False
+    logging.debug('handler mp3 file')
+    #file_saved = False
     nr  = 0
-    while not file_saved:
+    while True:
+        logging.debug('handler mp3 file')
         try:
-            destination = open(MUSIC_PATH+f.name+'-%s' % nr, 'wb+')
-        except OSError:
+            destination = open(MUSIC_PATH+('-%s.' % nr).join(f.name.rsplit('.', 1)), 'wb+')
+        except IOError:
             nr += 1
         else:
             for chunk in f.chunks():
                 destination.write(chunk)
-                destination.close()
-            file_saved = True
+            destination.close()
+            return MUSIC_PATH+destination.name
 
 def handle_add_youtubevideo():
     pass

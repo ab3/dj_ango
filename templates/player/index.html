@@ -83,17 +83,16 @@
 <div class="container">
 	<div class="column span-24 last">
 		<div id="browser_uploadfile">
-			<form>
+			<form action="/upload_file/" method="POST" enctype="multipart/form-data">
 				<div>
-					<label>Name: </label><input type="text"/>
-					<label>Artist: </label><input type="text"/>
-					<label>Album: </label><input type="text"/>
+					<label>Name: </label>{{ mp3file_form.title }}
+					<label>Artist: </label>{{ mp3file_form.artist }}
+					<label>Album: </label>{{ mp3file_form.album }}
 				</div>
 				<div>
 					<label>MP3 File: </label>
-					<input id="filelink_inputtext" type="text"/>
-					<input type="button" value="Choose File"/>
-					<input type="button" value="Submit"/>
+					{{ mp3file_form.mp3_file }}
+					<input type="submit" value="Submit"/>
 				</div>
 			</form>
 		</div>

@@ -1,0 +1,4 @@
+required modules:
+ - python >= 2.5
+ - django >= 1.1
+ - eyeD3

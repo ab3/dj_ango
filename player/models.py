@@ -16,10 +16,5 @@ class Song(Model):
     def __unicode__(self):
         return '%s - %s - %s' % (self.title, self.album, self.artist)
 
-
-
-# class SongVote(Model):
-#     song = ForeignKey(Song)
-#     user = ForeignKey(User)
     
     
