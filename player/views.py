@@ -79,15 +79,11 @@ def upload_file(request):
             
             # Determen the play time of the uploaded mp3
             import eyeD3
-            logging.debug('create song 0')
             if eyeD3.isMp3File(file_path):
-                logging.debug('create song 2')
                 logging.debug(file_path)
-                #audio_file = eyeD3.Mp3AudioFile(file_path)
-                #duration = audio_file.getPlayTime()
-                duration = 0
+                audio_file = eyeD3.Mp3AudioFile(file_path)
+                duration = audio_file.getPlayTime()
                 
-                logging.debug('create song 2')
                 song = Song(
                     title=form.cleaned_data['title'],
                     duration=duration,

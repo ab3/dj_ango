@@ -1,10 +1,11 @@
+#
 # More info about mplayer http://www.mplayerhq.hu/DOCS/tech/slave.txt
 import os
 import sys
 import logging
 from select import select, error
-from socket import socket, AF_UNIX, SOCK_DGRAM
-from SocketServer import UnixDatagramServer, TCPServer, BaseRequestHandler, StreamRequestHandler
+from socket import socket, AF_UNIX, SOCK_STREAM
+from SocketServer import UnixStreamServer, StreamRequestHandler
 from subprocess import Popen, PIPE
 from multiprocessing import Process, Queue
 from django.db.models import Count
@@ -42,7 +43,7 @@ class MPlayerWrapper:
     def _flush(self):
         while not self._q.empty():
             self._q.get()
-
+    
     def get_filename(self):
         self._flush()
         self._write('pausing_keep_force get_property filename\n')
@@ -54,13 +55,14 @@ class MPlayerWrapper:
         return  int(float(self._read().partition('=')[2]))
     
     def loadfile(self, path):
+        self._flush()
         self._write('pausing_keep_force loadfile %s\n' % (path))
     
     def get_path(self):
         self._flush()
         self._write('pausing_keep_force get_property path\n')
         return  self._read().partition('=')[2]
-
+    
     def is_playing(self):
         self._flush()
         self._write('pausing_keep_force get_property pause\n')
@@ -68,10 +70,12 @@ class MPlayerWrapper:
     
     def play(self):
         if not self.is_playing():
-            self._write('pause\n')
-
+            self._flush()
+            self._write('play\n')
+    
     def pause(self):
         if self.is_playing():
+            self._flush()
             self._write('pause\n')
     
     def get_position(self):
@@ -89,115 +93,67 @@ class MPlayerWrapper:
         if self._mp.poll() is not None:
             return None
         else:
-            # tuple (stopped, playing, time_length, time_pos)
-            return tuple(self.is_playing(), self.get_length(), self.get_position())
+            return (self.is_playing(), self.get_length(), self.get_position())
     
     def stop(self):
         self._write('stop\n')
 
+
 class MPlayerHandler(StreamRequestHandler):
-    def __init__(self):
+    def __init__(self, request, client_address, server):
         self._mp = MPlayerWrapper()
         self._active = False
+        StreamRequestHandler.__init__(self, request, client_address, server)
     
-    def dispatch(self, s):
-        pass
-    
-    def handle(self):
-        data = self.rfile.readline().strip()
-        dispatch(data)
-        self.wfile.write('hello')
-        
-        
-
-
-class MPlayerDispatch:
-    def __init__(self, file_socket):
-        self._mp = MPlayerWrapper()
-        self.socket = socket(AF_UNIX, SOCK_DGRAM)
-        self.socket.bind(file_socket)
-        self.active = False
-
-    def run(self):
-        data = ''
-        #self.socket.listen(1)
-        #conn, addr = self.socket.accept()
-        while True:
-            data += self.socket.recv(1024)
-            logging.debug('run: '+data)
-
-            # Dispatch command
-            if data.startswith('play'):
-                self._mp.play()
-                data = data.replace('play', '', 1)
-            elif data.startswith('pause'):
-                self._mp.pause()
-                data = data.replace('pause', '', 1)
-            elif data.startswith('skip'):
-                self._mp.skip()
-                data = data.replace('skip', '', 1)
-            elif data.startswith('start'):
-                logging.debug('start')
-                self.active = True
+    def _dispatch(self, s):
+        if data == 'play':
+            return self._mp.play()
+        elif data == 'pause':
+            return self._mp.play()
+        elif data == 'skip':
+            self._dispatch('stop')
+            self._dispatch('start')
+        elif data == 'start':
+            if not self._active:
                 try:
                     song = Song.objects.filter(is_playing=False).annotate(nr_votes=Count('votes')).order_by('-nr_votes')[0]
                 except IndexError:
                     pass
                 else:
+                    self._active = True
                     song.is_playing = True
-                    for user in song.votes.all():
-                        song.votes.remove(user)
                     song.save()
                     self._mp.loadfile(song.file_path)
-                data = data.replace('skip', '', 1)
-            elif data.startswith('stop'):
-                logging.debug('stop')
-                self.active = False
+        elif data == 'stop':
+            if not self._active:
                 try:
                     song = Song.objects.filter(is_playing=True)[0]
                 except IndexError:
                     pass
                 else:
+                    self._active = False
                     song.is_playing = False
+                    for user in song.votes.all():
+                        song.votes.remove(user)
                     song.save()
-                    #song.delete()
-                    # delete song
-                    #self._mp.loadfile(song.file_path)
-                data = data.replace('skip', '', 1)
-            elif data.startwith('info'):
-                logging.debug('info')
-
-            # Check if mplayer is still playing
-            # filename will return a empty string if
-            # mplayer isn't playing anything
-            if not self._mp.get_filename() and self.active:
-                try:
-                    current_song = Song.objects.filter(is_playing=True)[0]
-                    next_song = Song.objects.filter(is_playing=False).annotate(nr_votes=Count('votes')).order_by('-nr_votes')[0]
-                except IndexError:
-                    pass
-                else:
-                    # Remove current song
-                    current_song.is_playing = False
-                    for user in current_song.votes.all():
-                        current_song.votes.remove(user)
-                    current_song.save()
-                        
-                    #os.remove(current_song.file_path)
-                    #current_song.delete()
-                    
-                    #start playing next song
-                    next_song.is_playing = True
-                    next_song.save()
-                    self._mp.loadfile(current_song.file_path)
+                    self._mp.stop()
+        elif data == 'info':
+            return 'jahaaaaaaaaaaaaaaaaa'
+    
+    def handle(self):
+        logging.debug('handle')
+        data = self.rfile.readline().strip()
+        result = self.dispatch(data)
+        self.wfile.write(result)
 
 
 class MPlayerControl:
     @classmethod
     def get_socket(cls):
+        logging.debug('client')
         s = None
         try:
-            s = socket(AF_UNIX, SOCK_DGRAM)
+            s = socket(AF_UNIX, SOCK_STREAM)
         except error, msg:
             logging.debug(msg)
             sys.exit(1)
@@ -208,7 +164,7 @@ class MPlayerControl:
             logging.debug(msg)
             sys.exit(1)
         return s
-        
+    
     @classmethod
     def play(cls):
         s = cls.get_socket()
@@ -220,7 +176,7 @@ class MPlayerControl:
         s = cls.get_socket()
         s.send('pause')
         s.close()
-
+    
     @classmethod
     def skip(cls):
         s = cls.get_socket()
@@ -232,7 +188,7 @@ class MPlayerControl:
         s = cls.get_socket()
         s.send('start')
         s.close()
-
+    
     @classmethod
     def stop(cls):
         s = cls.get_socket()
@@ -247,18 +203,6 @@ class MPlayerControl:
 
 
 def runshell():
-    os.system('rm /tmp/dj_ango_musicplayer.sock')
-    player = MPlayerDispatch(FILE_SOCKET)
-    #player._mp.loadfile('/Users/abe/Code/dj_ango/music/chan.mp3')
-    player.run()
-
-def run():
-    if sys.argv[1] == 'runserver':
-        os.system('rm /tmp/dj_ango_musicplayer.sock')
-        player = MPlayerDispatch(FILE_SOCKET)
-        #player._mp.loadfile('/Users/abe/Code/dj_ango/music/chan.mp3')
-        player.run()
-
-
-if __name__ == '__main__':
-    run()
+    os.system('rm %s' % FILE_SOCKET)
+    server = UnixStreamServer(FILE_SOCKET, MPlayerHandler)
+    server.serve_forever()
