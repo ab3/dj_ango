@@ -21,11 +21,13 @@ class N:
 def index(request):
     songs = Song.objects.filter(is_playing=False).annotate(nr_votes=Count('votes')).order_by('-nr_votes')
     votes = songs.filter(votes=request.user)
-    current_song = N()
+    current_song = MPlayerControl.status()
+    logging.debug(current_song)
     try:
         current_song = Song.objects.filter(is_playing=True)[0]
     except IndexError:
-        current_song.title = 'hello'
+        #current_song.title = 'hello'
+        pass
     mp3file_form = UploadMp3FileForm()
     return render_to_response('player/index.html',
         {'request': request, 'songs': songs, 'votes': votes, 'current_song': current_song, 'mp3file_form': mp3file_form})

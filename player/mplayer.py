@@ -106,14 +106,14 @@ class MPlayerHandler(StreamRequestHandler):
         StreamRequestHandler.__init__(self, request, client_address, server)
     
     def _dispatch(self, s):
-        if data == 'play':
-            return self._mp.play()
-        elif data == 'pause':
-            return self._mp.play()
-        elif data == 'skip':
+        if s == 'play':
+            self._mp.play()
+        elif s == 'pause':
+            self._mp.play()
+        elif s == 'skip':
             self._dispatch('stop')
             self._dispatch('start')
-        elif data == 'start':
+        elif s == 'start':
             if not self._active:
                 try:
                     song = Song.objects.filter(is_playing=False).annotate(nr_votes=Count('votes')).order_by('-nr_votes')[0]
@@ -124,7 +124,7 @@ class MPlayerHandler(StreamRequestHandler):
                     song.is_playing = True
                     song.save()
                     self._mp.loadfile(song.file_path)
-        elif data == 'stop':
+        elif s == 'stop':
             if not self._active:
                 try:
                     song = Song.objects.filter(is_playing=True)[0]
@@ -137,14 +137,17 @@ class MPlayerHandler(StreamRequestHandler):
                         song.votes.remove(user)
                     song.save()
                     self._mp.stop()
-        elif data == 'info':
-            return 'jahaaaaaaaaaaaaaaaaa'
+        elif s == 'status':
+            return str(self._mp.status())
     
     def handle(self):
-        logging.debug('handle')
+        logging.debug('handle 1')
         data = self.rfile.readline().strip()
-        result = self.dispatch(data)
+        logging.debug('handle 2')
+        result = self._dispatch(data)
+        logging.debug('handle 3')
         self.wfile.write(result)
+        logging.debug('handle 4')
 
 
 class MPlayerControl:
@@ -168,38 +171,48 @@ class MPlayerControl:
     @classmethod
     def play(cls):
         s = cls.get_socket()
-        s.send('play')
+        s.send('play\n')
         s.close()
     
     @classmethod
     def pause(cls):
         s = cls.get_socket()
-        s.send('pause')
+        s.send('pause\n')
         s.close()
     
     @classmethod
     def skip(cls):
         s = cls.get_socket()
-        s.send('skip')
+        s.send('skip\n')
         s.close()
     
     @classmethod
     def start(cls):
         s = cls.get_socket()
-        s.send('start')
+        s.send('start\n')
         s.close()
     
     @classmethod
     def stop(cls):
+        logging.debug('stop 1')
         s = cls.get_socket()
-        s.send('stop')
+        logging.debug('stop 2')
+        s.send('stop\n')
+        logging.debug('stop 3')
+        result = select([s.fileno()], [], [], )[0][0]
+        logging.debug('stop 4')
         s.close()
+        logging.debug('stop 5'+str(result)+' '+str(type(result)))
+        return result
     
     @classmethod
-    def info(cls):
+    def status(cls):
         s = cls.get_socket()
-        s.send('info')
+        s.send('status\n')
+        result = select([s.fileno()], [], [], )[0][0]
+        result2 = s.recv(4096)
         s.close()
+        return result2
 
 
 def runshell():
