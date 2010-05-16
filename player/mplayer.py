@@ -48,14 +48,6 @@ class MPlayerWrapper(object):
         self._write('pausing_keep_force get_property filename\n')
         return  self._read().partition('=')[2].rstrip()
     
-    # def get_path(self):
-    #     self._flush()
-    #     self._write('pausing_keep_force get_property filename\n')
-    #     result = self._read().split('=')[1].strip()
-    #     logging.debug('get_path: %s, %s' % result, type(result))
-    #     #return '' if result == '(null)\n' else result
-    #     return result
-    
     def get_length(self):
         self._flush()
         self._write('pausing_keep_force get_property length\n')
@@ -144,16 +136,24 @@ class MPlayerServer(object):
             logging.debug('pause')
             self._mp.pause()
         elif s == 'skip':
-            logging.debug('play')
-            self._mp.stop()
-            #self._dispatch('stop')
-            #self._dispatch('start')
+            logging.debug('skip')
+            #self._mp.stop()
+            self._dispatch('stop')
+            self._dispatch('start')
         elif s == 'start':
             logging.debug('start')
             self._active = True
         elif s == 'stop':
             logging.debug('stop')
+            try:
+                current_song = Song.objects.filter(is_playing=True)[0]
+            except IndexError:
+                pass
+            else:
+                os.remove(current_song.file_path)
+                current_song.delete()
             self._active = False
+            
             self._mp.stop()
         elif s == 'status':
             logging.debug('status')
@@ -199,9 +199,6 @@ class MPlayerServer(object):
                             self._mp.loadfile(next_song.file_path)
                 
                         next_song = None
-            # Check is song has stopped
-            
-                
 
 
 class MPlayerControl(object):
@@ -248,15 +245,10 @@ class MPlayerControl(object):
     
     @classmethod
     def stop(cls):
-        logging.debug('stop 1')
         s = cls.get_socket()
-        logging.debug('stop 2')
         s.send('stop\n')
-        logging.debug('stop 3')
         result = select([s.fileno()], [], [], )[0][0]
-        logging.debug('stop 4')
         s.close()
-        logging.debug('stop 5'+str(result)+' '+str(type(result)))
         return result
     
     @classmethod
