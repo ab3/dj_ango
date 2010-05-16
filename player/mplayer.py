@@ -3,9 +3,8 @@
 import os
 import sys
 import logging
-from select import select, error
-from socket import socket, AF_UNIX, SOCK_STREAM
-from SocketServer import UnixStreamServer, StreamRequestHandler
+from select import select, error as SelectError
+from socket import socket, AF_UNIX, SOCK_STREAM, error as SocketError
 from subprocess import Popen, PIPE
 from multiprocessing import Process, Queue
 from django.db.models import Count
@@ -20,7 +19,7 @@ logging.basicConfig(
     format = '%(asctime)s %(levelname)s %(message)s')
 
 
-class MPlayerWrapper:
+class MPlayerWrapper(object):
     def __init__(self):
         def read_mplayer_pipe(fd, q):
             while True:
@@ -49,6 +48,14 @@ class MPlayerWrapper:
         self._write('pausing_keep_force get_property filename\n')
         return  self._read().partition('=')[2].rstrip()
     
+    # def get_path(self):
+    #     self._flush()
+    #     self._write('pausing_keep_force get_property filename\n')
+    #     result = self._read().split('=')[1].strip()
+    #     logging.debug('get_path: %s, %s' % result, type(result))
+    #     #return '' if result == '(null)\n' else result
+    #     return result
+    
     def get_length(self):
         self._flush()
         self._write('pausing_keep_force get_property length\n')
@@ -61,7 +68,8 @@ class MPlayerWrapper:
     def get_path(self):
         self._flush()
         self._write('pausing_keep_force get_property path\n')
-        return  self._read().partition('=')[2]
+        result = self._read().partition('=')[2].strip()
+        return '' if result == '(null)' else result
     
     def is_playing(self):
         self._flush()
@@ -99,73 +107,119 @@ class MPlayerWrapper:
         self._write('stop\n')
 
 
-class MPlayerHandler(StreamRequestHandler):
-    def __init__(self, request, client_address, server):
+class MPlayerServer(object):
+    REQUEST_QUEUE_SIZE = 5
+    READ_BUFFER_SIZE = -1
+    WRITE_BUFFER_SIZE = 0
+    
+    def __init__(self, file_socket):
         self._mp = MPlayerWrapper()
+        self._socket = socket(AF_UNIX, SOCK_STREAM)
+        self._file_socket = file_socket
         self._active = False
-        StreamRequestHandler.__init__(self, request, client_address, server)
+    
+    def _handle_request(self):
+        try:
+            request, client_address = self._socket.accept()
+        except SocketError, msg:
+            logging.debug('SocketError %s' % msg)
+            return
+        
+        try:
+            rfile = request.makefile('rb', self.READ_BUFFER_SIZE)
+            wfile = request.makefile('wb', self.WRITE_BUFFER_SIZE)
+            logging.debug('Dispatch')
+            self._dispatch(rfile.readline().strip())
+        except:
+            pass
+        finally:
+            rfile.close()
+            wfile.close()
     
     def _dispatch(self, s):
         if s == 'play':
+            logging.debug('play')
             self._mp.play()
         elif s == 'pause':
-            self._mp.play()
+            logging.debug('pause')
+            self._mp.pause()
         elif s == 'skip':
-            self._dispatch('stop')
-            self._dispatch('start')
+            logging.debug('play')
+            self._mp.stop()
+            #self._dispatch('stop')
+            #self._dispatch('start')
         elif s == 'start':
-            if not self._active:
-                try:
-                    song = Song.objects.filter(is_playing=False).annotate(nr_votes=Count('votes')).order_by('-nr_votes')[0]
-                except IndexError:
-                    pass
-                else:
-                    self._active = True
-                    song.is_playing = True
-                    song.save()
-                    self._mp.loadfile(song.file_path)
+            logging.debug('start')
+            self._active = True
         elif s == 'stop':
-            if not self._active:
-                try:
-                    song = Song.objects.filter(is_playing=True)[0]
-                except IndexError:
-                    pass
-                else:
-                    self._active = False
-                    song.is_playing = False
-                    for user in song.votes.all():
-                        song.votes.remove(user)
-                    song.save()
-                    self._mp.stop()
+            logging.debug('stop')
+            self._active = False
+            self._mp.stop()
         elif s == 'status':
-            return str(self._mp.status())
+            logging.debug('status')
+            return str(self._mp.status())        
     
-    def handle(self):
-        logging.debug('handle 1')
-        data = self.rfile.readline().strip()
-        logging.debug('handle 2')
-        result = self._dispatch(data)
-        logging.debug('handle 3')
-        self.wfile.write(result)
-        logging.debug('handle 4')
+    def fileno(self):
+        return self._socket.fileno()
+    
+    def run(self, poll_interval=0.5):
+        self._socket.bind(self._file_socket)     # bind socket
+        self._socket.listen(self.REQUEST_QUEUE_SIZE)  # activate socket
+        while True:
+            # Listen to socket
+            try:
+                r, w, e = select([self], [], [], poll_interval)
+                if r:
+                    logging.debug('handle request')
+                    self._handle_request()
+            except SelectError, msg:
+                logging.debug('run except %s' % msg)
+                self._socket.close()
+                self._mp.quit()
+                return
+            else:
+                if self._active:
+                    if not self._mp.get_path():
+                        try:
+                            current_song = Song.objects.filter(is_playing=True)[0]
+                        except IndexError:
+                            pass
+                        else:
+                            os.remove(current_song.file_path)
+                            current_song.delete()
+                        
+                        try:
+                            next_song = next_song = Song.objects.filter(is_playing=False) \
+                                .annotate(nr_votes=Count('votes')).order_by('-nr_votes')[0]
+                        except IndexError:
+                            pass
+                        else:
+                            next_song.is_playing = True
+                            next_song.save()
+                            self._mp.loadfile(next_song.file_path)
+                
+                        next_song = None
+            # Check is song has stopped
+            
+                
 
 
-class MPlayerControl:
+class MPlayerControl(object):
     @classmethod
     def get_socket(cls):
         logging.debug('client')
         s = None
         try:
             s = socket(AF_UNIX, SOCK_STREAM)
-        except error, msg:
+        except SocketError, msg:
             logging.debug(msg)
             sys.exit(1)
         try:
             s.connect(FILE_SOCKET)
-        except error, msg:
+        except SocketError, msg:
             s.close()
             logging.debug(msg)
-            sys.exit(1)
+            #sys.exit(1)
         return s
     
     @classmethod
@@ -215,7 +269,7 @@ class MPlayerControl:
         return result2
 
 
-def runshell():
+def run_server():
     os.system('rm %s' % FILE_SOCKET)
-    server = UnixStreamServer(FILE_SOCKET, MPlayerHandler)
-    server.serve_forever()
+    server = MPlayerServer(FILE_SOCKET)
+    server.run()

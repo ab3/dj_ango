@@ -1,4 +1,3 @@
-#import eyeD3
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
@@ -21,7 +20,7 @@ class N:
 def index(request):
     songs = Song.objects.filter(is_playing=False).annotate(nr_votes=Count('votes')).order_by('-nr_votes')
     votes = songs.filter(votes=request.user)
-    current_song = MPlayerControl.status()
+    current_song = None #MPlayerControl.status()
     logging.debug(current_song)
     try:
         current_song = Song.objects.filter(is_playing=True)[0]

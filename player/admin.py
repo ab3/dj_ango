@@ -3,7 +3,7 @@ from models import Song
 
 class SongAdmin(ModelAdmin):
     model = Song
-    list_display = ('title', 'duration', 'artist', 'album')
+    list_display = ('title', 'duration', 'artist', 'album', 'is_playing')
     search_fields = ['title', 'duration', 'artist']
 
 
