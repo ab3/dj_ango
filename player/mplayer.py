@@ -20,82 +20,112 @@ logging.basicConfig(
 
 
 class MPlayerWrapper(object):
-    def __init__(self):
+    """A simple wrapper around the mplayer music player.
+    
+    Use loadfile() to start playing a file
+    
+    """
+    def __init__(self, mplayer_path='mplayer'):
         def read_mplayer_pipe(fd, q):
             while True:
                 output = select([fd], [], [])[0][0]
                 q.put(output.readline())
         
-        cmd = ['mplayer', '-slave', '-quiet', '-idle']
+        cmd = [mplayer_path, '-slave', '-quiet', '-idle']
         self._mp = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=IGNORE)
         self._q = Queue()
         self._p = Process(target=read_mplayer_pipe, args=(self._mp.stdout, self._q))
         self._p.start()
         self._write = self._mp.stdin.write
-        self._read = self._q.get # unpack list, allways use first element
-        self._read() # Clean
-        self._read() # Clean
+        self._read = self._q.get
     
     def __del__(self):
         self.quit()
     
     def _flush(self):
+        """Flush the communication Queue"""
         while not self._q.empty():
             self._q.get()
-    
-    def get_filename(self):
-        self._flush()
-        self._write('pausing_keep_force get_property filename\n')
-        return  self._read().partition('=')[2].rstrip()
-    
-    def get_length(self):
-        self._flush()
-        self._write('pausing_keep_force get_property length\n')
-        return  int(float(self._read().partition('=')[2]))
-    
-    def loadfile(self, path):
-        self._flush()
-        self._write('pausing_keep_force loadfile %s\n' % (path))
-    
+
     def get_path(self):
+        """Returns the path of the file that is currenly loaded.
+        
+        It return an empty string if no file is loaded
+        """
         self._flush()
         self._write('pausing_keep_force get_property path\n')
         result = self._read().partition('=')[2].strip()
         return '' if result == '(null)' else result
     
-    def is_playing(self):
+    def get_filename(self):
+        """Returns the name of the file that is currenly loaded.
+        
+        It return an empty string if no file is loaded
+        """
+        if self.is_file_loaded():
+            return ''
+        else:
+            self._flush()
+            self._write('pausing_keep_force get_property filename\n')
+            return  self._read().partition('=')[2].rstrip()
+
+    def is_file_loaded(self):
+        """Return True if mplayer has loaded a file"""
+        return self.get_path() != ''
+
+    def loadfile(self, path):
+        """load the the file 'path' and start playing it."""
+        self._flush()
+        self._write('pausing_keep_force loadfile %s\n' % (path))
+    
+    def is_paused(self):
+        """Return True if mplayer has loaded a file and is playing this file."""
         self._flush()
         self._write('pausing_keep_force get_property pause\n')
-        return self._read().partition('=')[2] == 'no\n'
+        a = self._read().split('=')[1].strip()
+        logging.debug('is_paused: %s|' % a)
+        return self.is_file_loaded() and a == 'yes'
     
     def play(self):
-        if not self.is_playing():
-            self._flush()
-            self._write('play\n')
-    
-    def pause(self):
-        if self.is_playing():
+        """if there is a song loaded it will start playing"""
+        if self.is_file_loaded() and self.is_paused():
             self._flush()
             self._write('pause\n')
     
+    def pause(self):
+        """if there is a song loaded it will be paused"""
+        if self.is_file_loaded() and not self.is_paused():
+            self._flush()
+            self._write('pause\n')
+
+    def get_length(self):
+        """Returns the length of the loaded song in seconds as int."""
+        if self.get_path():
+            self._flush()
+            self._write('pausing_keep_force get_property length\n')
+            return  int(float(self._read().partition('=')[2]))
+        else:
+            return -1
+    
     def get_position(self):
-        self._flush()
-        self._write('pausing_keep_force get_property time_pos\n')
-        return  int(float(self._read().partition('=')[2]))
+        """Returns the position in the song as int between 0 and 100."""
+        if self.is_file_loaded():
+            self._flush()
+            self._write('pausing_keep_force get_property time_pos\n')
+            return  int(float(self._read().partition('=')[2]))
+        else:
+            return -1
         
     def quit(self):
+        """Quit the mplayer supprocess.
+        
+        After this command MPlayerWrapper won't work correctly.
+        """
         if self._mp.poll() is None:
             self._mp.communicate('quit\n')
-        self._mp_send = None
-        self._mp_recv = None
-    
-    def status(self):
-        if self._mp.poll() is not None:
-            return None
-        else:
-            return (self.is_playing(), self.get_length(), self.get_position())
     
     def stop(self):
+        """Stop playing the current song and remove it"""
         self._write('stop\n')
 
 
@@ -118,30 +148,27 @@ class MPlayerServer(object):
             return
         
         try:
-            rfile = request.makefile('rb', self.READ_BUFFER_SIZE)
-            wfile = request.makefile('wb', self.WRITE_BUFFER_SIZE)
-            logging.debug('Dispatch')
-            self._dispatch(rfile.readline().strip())
-        except:
-            pass
+            rfile = request.makefile('r', self.READ_BUFFER_SIZE)
+            wfile = request.makefile('w', self.WRITE_BUFFER_SIZE)
+            self._dispatch(rfile.readline().strip(), rfile, wfile)
+        except Exception, msg:
+            logging.debug('Exception %s' % msg)
         finally:
+            if not wfile.closed:
+                wfile.flush()
             rfile.close()
             wfile.close()
     
-    def _dispatch(self, s):
+    def _dispatch(self, s, rfile, wfile):
+        logging.debug('_dispatch: %s' % s)
         if s == 'play':
-            logging.debug('play')
             self._mp.play()
         elif s == 'pause':
-            logging.debug('pause')
             self._mp.pause()
         elif s == 'skip':
-            logging.debug('skip')
-            #self._mp.stop()
             self._dispatch('stop')
             self._dispatch('start')
         elif s == 'start':
-            logging.debug('start')
             self._active = True
         elif s == 'stop':
             logging.debug('stop')
@@ -156,8 +183,15 @@ class MPlayerServer(object):
             
             self._mp.stop()
         elif s == 'status':
-            logging.debug('status')
-            return str(self._mp.status())        
+            if self._mp.is_file_loaded():
+                wfile.write(','.join((
+                    str(self._mp.is_file_loaded()),
+                    str(self._mp.is_paused()),
+                    str(self._mp.get_length()),
+                    str(self._mp.get_position()),
+                )))
+            else:
+                wfile.write('False,False,-1,-1')
     
     def fileno(self):
         return self._socket.fileno()
@@ -179,7 +213,7 @@ class MPlayerServer(object):
                 return
             else:
                 if self._active:
-                    if not self._mp.get_path():
+                    if not self._mp.is_file_loaded():
                         try:
                             current_song = Song.objects.filter(is_playing=True)[0]
                         except IndexError:
@@ -202,6 +236,7 @@ class MPlayerServer(object):
 
 
 class MPlayerControl(object):
+    READ_BUFFER_SIZE = -1
     @classmethod
     def get_socket(cls):
         logging.debug('client')
@@ -247,7 +282,6 @@ class MPlayerControl(object):
     def stop(cls):
         s = cls.get_socket()
         s.send('stop\n')
-        result = select([s.fileno()], [], [], )[0][0]
         s.close()
         return result
     
@@ -255,10 +289,12 @@ class MPlayerControl(object):
     def status(cls):
         s = cls.get_socket()
         s.send('status\n')
-        result = select([s.fileno()], [], [], )[0][0]
-        result2 = s.recv(4096)
+        r = select([s.fileno()], [], [], )[0][0]
+        rfile = s.makefile('r', cls.READ_BUFFER_SIZE)
+        line = rfile.readline()
         s.close()
-        return result2
+        rfile.close()
+        return line
 
 
 def run_server():

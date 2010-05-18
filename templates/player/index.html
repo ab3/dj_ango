@@ -9,8 +9,21 @@
 	</div>
 	<div class="column span-20">
 		<div id="controller_info" class="controller_infolabel">
-			<div class="">DJ - ANGO</div>
-			<div>{{ current_song.title }} - {{ current_song.album }} - {{ current_song.artist }}</div>
+			<div>DJ - ANGO</div>
+			{% if status_dict.is_file_loaded  %}
+				<div>
+					{{ current_song.title }}
+					{% if current_song.album %}
+					 	- {{ current_song.album }}
+				 	{% endif %}
+					{% if current_song.artist %}
+					 	- {{ current_song.artist }}
+				 	{% endif %}
+				</div>
+				<div id="song_progressbar">
+					{{ status_dict.position }}/{{ status_dict.length }}
+				</div>
+			{% endif %}
 		</div>
 	</div>
 	<div class="column span-2 last">

@@ -14,23 +14,39 @@ import logging
 
 MUSIC_PATH = '/Users/abe/Code/dj_ango/music/'
 
-class N:
-    pass
-
 def index(request):
     songs = Song.objects.filter(is_playing=False).annotate(nr_votes=Count('votes')).order_by('-nr_votes')
     votes = songs.filter(votes=request.user)
-    current_song = None #MPlayerControl.status()
-    logging.debug(current_song)
+    status = MPlayerControl.status().split(',')
+    status_dict = {
+        'is_file_loaded': True if status[0] == 'True' else False,
+        'is_playing': True if status[1] == 'True' else False,
+        'length': int(status[2]),
+        'position': int(status[3]),
+    }
     try:
         current_song = Song.objects.filter(is_playing=True)[0]
     except IndexError:
-        #current_song.title = 'hello'
-        pass
+        logging.debug('epic fail')
+        current_song = None
     mp3file_form = UploadMp3FileForm()
-    return render_to_response('player/index.html',
-        {'request': request, 'songs': songs, 'votes': votes, 'current_song': current_song, 'mp3file_form': mp3file_form})
+    return render_to_response('player/index.html', {
+        'request': request,
+        'songs': songs,
+        'votes': votes,
+        'current_song': current_song,
+        'status_dict': status_dict,
+        'mp3file_form': mp3file_form,
+    })
 
+def status(request):
+    status = MPlayerControl.status().split(',')
+    status_dict = {
+        'is_file_loaded': True if status[0] == 'True' else False,
+        'is_playing': True if status[1] == 'True' else False,
+        'length': int(status[2]),
+        'position': int(status[3]),
+    }
 
 @login_required
 def start(request):
@@ -58,7 +74,8 @@ def pause(request):
 
 @login_required
 def skip(request):
-    MPlayerControl.skip()
+    r = MPlayerControl.skip()
+    logging.debug('skip')
     return HttpResponseRedirect(reverse('player-index'))
 
 

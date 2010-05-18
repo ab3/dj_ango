@@ -15,6 +15,4 @@ class Song(Model):
     
     def __unicode__(self):
         return '%s - %s - %s' % (self.title, self.album, self.artist)
-
-    
     
