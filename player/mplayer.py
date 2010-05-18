@@ -179,8 +179,8 @@ class MPlayerServer(object):
         elif s == 'pause':
             self._mp.pause()
         elif s == 'skip':
-            self._dispatch('stop')
-            self._dispatch('start')
+            self._dispatch('stop', rfile, wfile)
+            self._dispatch('start', rfile, wfile)
         elif s == 'start':
             self._active = True
         elif s == 'stop':
@@ -297,7 +297,6 @@ class MPlayerControl(object):
         s = cls.get_socket()
         s.send('stop\n')
         s.close()
-        return result
     
     @classmethod
     def status(cls):

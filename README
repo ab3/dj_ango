@@ -1,4 +1,29 @@
-required modules:
+========================
+|        DJ-ANGO       |
+========================
+| UPLOAD | VOTE | PLAY |
+========================
+
+A web based distributed music player.
+
+Required Modules:
+-----------------
  - python >= 2.5
  - django >= 1.1
  - eyeD3
+ - mplayer
+
+Configure:
+----------
+Edit DATABASE_NAME and STATIC_DOC_ROOT in settings.py
+
+Run:
+----
+Start the mplayer music mplayer:
+	python run_mplayer.py 
+
+Start the django web server:
+	python manage.py runserver 0.0.0.0:8000
+
+
+Note: this software is stil in pre alfa state!
