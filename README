@@ -19,11 +19,14 @@ Edit DATABASE_NAME and STATIC_DOC_ROOT in settings.py
 
 Run:
 ----
-Start the mplayer music mplayer:
+Go to the DJ-ANGO path:
+	cd dj_ango
+
+Start the mplayer music player:
 	python run_mplayer.py 
 
 Start the django web server:
 	python manage.py runserver 0.0.0.0:8000
 
 
-Note: this software is stil in pre alfa state!
+Note: this software is still in pre alfa state!
