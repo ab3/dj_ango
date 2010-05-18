@@ -82,7 +82,6 @@ class MPlayerWrapper(object):
         self._flush()
         self._write('pausing_keep_force get_property pause\n')
         a = self._read().split('=')[1].strip()
-        logging.debug('is_paused: %s|' % a)
         return self.is_file_loaded() and a == 'yes'
     
     def play(self):
@@ -161,6 +160,7 @@ class MPlayerServer(object):
             self._dispatch(rfile.readline().strip(), rfile, wfile)
         except Exception, msg:
             logging.debug('Exception in MPlayerServer %s' % msg)
+            return
         finally:
             if not wfile.closed:
                 wfile.flush()
@@ -173,7 +173,7 @@ class MPlayerServer(object):
         rfile for input
         wfile for output
         """
-        logging.debug('_dispatch: %s' % s)
+        logging.debug('Dispatch: %s' % s)
         if s == 'play':
             self._mp.play()
         elif s == 'pause':
@@ -184,7 +184,6 @@ class MPlayerServer(object):
         elif s == 'start':
             self._active = True
         elif s == 'stop':
-            logging.debug('stop')
             try:
                 current_song = Song.objects.filter(is_playing=True)[0]
             except IndexError:
@@ -222,10 +221,8 @@ class MPlayerServer(object):
             try:
                 r, w, e = select([self], [], [], poll_interval)
                 if r:
-                    logging.debug('handle request')
                     self._handle_request()
             except SelectError, msg:
-                logging.debug('run except %s' % msg)
                 self._socket.close()
                 self._mp.quit()
                 return
@@ -257,7 +254,6 @@ class MPlayerControl(object):
     READ_BUFFER_SIZE = -1
     @classmethod
     def get_socket(cls):
-        logging.debug('client')
         s = None
         try:
             s = socket(AF_UNIX, SOCK_STREAM)
