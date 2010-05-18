@@ -22,8 +22,7 @@ logging.basicConfig(
 class MPlayerWrapper(object):
     """A simple wrapper around the mplayer music player.
     
-    Use loadfile() to start playing a file
-    
+    Use loadfile() to start playing a file.
     """
     def __init__(self, mplayer_path='mplayer'):
         def read_mplayer_pipe(fd, q):
@@ -50,7 +49,7 @@ class MPlayerWrapper(object):
     def get_path(self):
         """Returns the path of the file that is currenly loaded.
         
-        It return an empty string if no file is loaded
+        It return an empty string if no file is loaded.
         """
         self._flush()
         self._write('pausing_keep_force get_property path\n')
@@ -60,7 +59,7 @@ class MPlayerWrapper(object):
     def get_filename(self):
         """Returns the name of the file that is currenly loaded.
         
-        It return an empty string if no file is loaded
+        It return an empty string if no file is loaded.
         """
         if self.is_file_loaded():
             return ''
@@ -70,7 +69,7 @@ class MPlayerWrapper(object):
             return  self._read().partition('=')[2].rstrip()
 
     def is_file_loaded(self):
-        """Return True if mplayer has loaded a file"""
+        """Return True if mplayer has loaded a file."""
         return self.get_path() != ''
 
     def loadfile(self, path):
@@ -87,13 +86,13 @@ class MPlayerWrapper(object):
         return self.is_file_loaded() and a == 'yes'
     
     def play(self):
-        """if there is a song loaded it will start playing"""
+        """if there is a song loaded it will start playing."""
         if self.is_file_loaded() and self.is_paused():
             self._flush()
             self._write('pause\n')
     
     def pause(self):
-        """if there is a song loaded it will be paused"""
+        """if there is a song loaded it will be paused."""
         if self.is_file_loaded() and not self.is_paused():
             self._flush()
             self._write('pause\n')
@@ -125,22 +124,31 @@ class MPlayerWrapper(object):
             self._mp.communicate('quit\n')
     
     def stop(self):
-        """Stop playing the current song and remove it"""
+        """Stop playing the current song and remove it."""
         self._write('stop\n')
 
 
 class MPlayerServer(object):
+    """A Simple socket server that dispatches commands to MplayerWrapper
+    
+    run: start running the server.
+    """
     REQUEST_QUEUE_SIZE = 5
     READ_BUFFER_SIZE = -1
     WRITE_BUFFER_SIZE = 0
     
     def __init__(self, file_socket):
+        """Constructor for MPlayerServer.
+        
+        file_socket: the path of the unix file socket for IPC.
+        """
         self._mp = MPlayerWrapper()
         self._socket = socket(AF_UNIX, SOCK_STREAM)
         self._file_socket = file_socket
         self._active = False
     
     def _handle_request(self):
+        """Handle request."""
         try:
             request, client_address = self._socket.accept()
         except SocketError, msg:
@@ -152,7 +160,7 @@ class MPlayerServer(object):
             wfile = request.makefile('w', self.WRITE_BUFFER_SIZE)
             self._dispatch(rfile.readline().strip(), rfile, wfile)
         except Exception, msg:
-            logging.debug('Exception %s' % msg)
+            logging.debug('Exception in MPlayerServer %s' % msg)
         finally:
             if not wfile.closed:
                 wfile.flush()
@@ -160,6 +168,11 @@ class MPlayerServer(object):
             wfile.close()
     
     def _dispatch(self, s, rfile, wfile):
+        """Match the string 's' to the available commands and dispatch it to the mplayer wrapper.
+        
+        rfile for input
+        wfile for output
+        """
         logging.debug('_dispatch: %s' % s)
         if s == 'play':
             self._mp.play()
@@ -194,9 +207,14 @@ class MPlayerServer(object):
                 wfile.write('False,False,-1,-1')
     
     def fileno(self):
+        """Implement a file descriptor."""
         return self._socket.fileno()
     
     def run(self, poll_interval=0.5):
+        """Starts the MPlayerServer
+        
+        poll_interval: the interval used in select.
+        """
         self._socket.bind(self._file_socket)     # bind socket
         self._socket.listen(self.REQUEST_QUEUE_SIZE)  # activate socket
         while True:
