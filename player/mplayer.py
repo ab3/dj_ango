@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+import simplejson as json
 from select import select, error as SelectError
 from socket import socket, AF_UNIX, SOCK_STREAM, error as SocketError
 from subprocess import Popen, PIPE
@@ -11,6 +12,7 @@ from django.db.models import Count
 from models import Song
 
 IGNORE = open(os.devnull, 'r+')
+DEBUG_ERR = open('/Users/abe/Code/dj_ango/err.txt', 'a')
 FILE_SOCKET = '/tmp/dj_ango_musicplayer.sock'
 
 # Debug
@@ -31,7 +33,7 @@ class MPlayerWrapper(object):
                 q.put(output.readline())
         
         cmd = [mplayer_path, '-slave', '-quiet', '-idle']
-        self._mp = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=IGNORE)
+        self._mp = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=DEBUG_ERR)
         self._q = Queue()
         self._p = Process(target=read_mplayer_pipe, args=(self._mp.stdout, self._q))
         self._p.start()
@@ -106,7 +108,7 @@ class MPlayerWrapper(object):
             return -1
     
     def get_position(self):
-        """Returns the position in the song as int between 0 and 100."""
+        """Returns the position in the song as int in seconds."""
         if self.is_file_loaded():
             self._flush()
             self._write('pausing_keep_force get_property time_pos\n')
@@ -144,7 +146,7 @@ class MPlayerServer(object):
         self._mp = MPlayerWrapper()
         self._socket = socket(AF_UNIX, SOCK_STREAM)
         self._file_socket = file_socket
-        self._active = False
+        self._active = True
     
     def _handle_request(self):
         """Handle request."""
@@ -173,7 +175,6 @@ class MPlayerServer(object):
         rfile for input
         wfile for output
         """
-        logging.debug('Dispatch: %s' % s)
         if s == 'play':
             self._mp.play()
         elif s == 'pause':
@@ -196,14 +197,21 @@ class MPlayerServer(object):
             self._mp.stop()
         elif s == 'status':
             if self._mp.is_file_loaded():
-                wfile.write(','.join((
-                    str(self._mp.is_file_loaded()),
-                    str(self._mp.is_paused()),
-                    str(self._mp.get_length()),
-                    str(self._mp.get_position()),
-                )))
+                wfile.write(json.dumps({
+                    'is_active': self._active,
+                    'is_file_loaded': self._mp.is_file_loaded(),
+                    'is_paused': self._mp.is_paused(),
+                    'length': self._mp.get_length(),
+                    'position': self._mp.get_position()
+                }))
             else:
-                wfile.write('False,False,-1,-1')
+                wfile.write(json.dumps({
+                    'is_active': self._active,
+                    'is_file_loaded': False,
+                    'is_paused': False,
+                    'length': -1,
+                    'position': -1
+                }))
     
     def fileno(self):
         """Implement a file descriptor."""
@@ -234,15 +242,17 @@ class MPlayerServer(object):
                         except IndexError:
                             pass
                         else:
+                            logging.debug('Removing current song')
                             os.remove(current_song.file_path)
                             current_song.delete()
                         
                         try:
-                            next_song = next_song = Song.objects.filter(is_playing=False) \
+                            next_song = Song.objects.filter(is_playing=False) \
                                 .annotate(nr_votes=Count('votes')).order_by('-nr_votes')[0]
                         except IndexError:
                             pass
                         else:
+                            logging.debug('Adding next song')
                             next_song.is_playing = True
                             next_song.save()
                             self._mp.loadfile(next_song.file_path)

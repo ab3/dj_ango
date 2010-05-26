@@ -1,7 +1,9 @@
+import simplejson as json
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
 from django.core.urlresolvers import reverse
+from django.core import serializers
 from django.db.models import Count
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -15,38 +17,49 @@ import logging
 MUSIC_PATH = '/Users/abe/Code/dj_ango/music/'
 
 def index(request):
-    songs = Song.objects.filter(is_playing=False).annotate(nr_votes=Count('votes')).order_by('-nr_votes')
-    votes = songs.filter(votes=request.user)
-    status = MPlayerControl.status().split(',')
-    status_dict = {
-        'is_file_loaded': True if status[0] == 'True' else False,
-        'is_playing': True if status[1] == 'True' else False,
-        'length': int(status[2]),
-        'position': int(status[3]),
-    }
-    try:
-        current_song = Song.objects.filter(is_playing=True)[0]
-    except IndexError:
-        logging.debug('epic fail')
-        current_song = None
     mp3file_form = UploadMp3FileForm()
-    return render_to_response('player/index.html', {
-        'request': request,
-        'songs': songs,
-        'votes': votes,
-        'current_song': current_song,
-        'status_dict': status_dict,
-        'mp3file_form': mp3file_form,
-    })
+    return render_to_response('player/index.html', {'request': request, 'mp3file_form': mp3file_form})
 
-def status(request):
-    status = MPlayerControl.status().split(',')
-    status_dict = {
-        'is_file_loaded': True if status[0] == 'True' else False,
-        'is_playing': True if status[1] == 'True' else False,
-        'length': int(status[2]),
-        'position': int(status[3]),
-    }
+def playlist(request):
+    # ToDo: make this more nicer...z 
+    songs = Song.objects.filter(is_playing=False).annotate(nr_votes=Count('votes')) .order_by('-nr_votes').values(
+        'pk', 'title', 'artist', 'album', 'duration', 'nr_votes')
+
+    serialized_songs = []
+    for song in songs:
+        serialized_songs.append(song)
+    logging.debug(songs)
+    votes = serializers.serialize(
+        'json',
+        Song.objects.filter(votes=request.user),
+        fields=('pk',)
+    )
+    return HttpResponse(json.dumps({'songs': serialized_songs, 'votes': votes}), mimetype='application/javascript')
+
+def player_status(request):
+    # ToDo: make this more nicer...z 
+    current_song = current_song = Song.objects.filter(is_playing=True).values( 
+        'pk', 'title', 'artist', 'album', 'duration')
+    if len(current_song) != 1:
+        current_song = []
+    else:
+        current_song = current_song[0]
+    songs = Song.objects.filter(is_playing=False).annotate(nr_votes=Count('votes')) .order_by('-nr_votes').values(
+        'pk', 'title', 'artist', 'album', 'duration', 'nr_votes')
+    serialized_songs = []
+    for song in songs:
+        serialized_songs.append(song)
+    
+    votes = Song.objects.filter(votes=request.user).values('pk')
+    serialized_votes = []
+    for vote in votes:
+        serialized_votes.append(vote)
+    
+    return HttpResponse(json.dumps({
+        'current_song': current_song,
+        'songs': serialized_songs,
+        'votes': serialized_votes,
+        'player_status': json.loads(MPlayerControl.status())}), mimetype='application/javascript')
 
 @login_required
 def start(request):
@@ -89,7 +102,9 @@ def remove(request):
 
 @login_required
 def upload_file(request):
+    logging.debug('Upload file 1')
     if request.method == 'POST':
+        logging.debug('Upload file 2')
         form = UploadMp3FileForm(request.POST, request.FILES)
         logging.debug('upload'+str(form.errors))
         if form.is_valid():
@@ -98,7 +113,7 @@ def upload_file(request):
             # Determen the play time of the uploaded mp3
             import eyeD3
             if eyeD3.isMp3File(file_path):
-                logging.debug(file_path)
+                logging.debug('eyeD3 %s' % file_path)
                 audio_file = eyeD3.Mp3AudioFile(file_path)
                 duration = audio_file.getPlayTime()
                 

@@ -10,20 +10,20 @@
 	<div class="column span-20">
 		<div id="controller_info" class="controller_infolabel">
 			<div>DJ - ANGO</div>
+			<div id="song_info"></div>
+			{% comment %}
 			{% if status_dict.is_file_loaded  %}
-				<div>
-					{{ current_song.title }}
-					{% if current_song.album %}
-					 	- {{ current_song.album }}
-				 	{% endif %}
-					{% if current_song.artist %}
-					 	- {{ current_song.artist }}
-				 	{% endif %}
+				<div id="song_info">
+					<div id="song_info_title">&nbsp;</div>
+					<div id="song_info_artist">&nbsp;</div>
+					<div id="song_info_album">&nbsp;</div>
 				</div>
 				<div id="song_progressbar">
-					{{ status_dict.position }}/{{ status_dict.length }}
+					<div id="song_progressbar_position"></div>
+					<div id="song_progressbar_length"></div>
 				</div>
 			{% endif %}
+			{% endcomment %}
 		</div>
 	</div>
 	<div class="column span-2 last">
@@ -35,14 +35,15 @@
 <table>
 	<thead>
 		<tr>
-			<th class="playlist_votes lean_center">Votes</td>
-			<th class="playlist_name">Name</td>
-			<th class="playlist_time lean_right">Time</td>
-			<th class="playlist_artist">Artist</td>
-			<th class="playlist_album">Album</td>
-		</td>
+			<th class="playlist_votes lean_center">Votes</th>
+			<th class="playlist_name">Name</th>
+			<th class="playlist_time lean_right">Time</th>
+			<th class="playlist_artist">Artist</th>
+			<th class="playlist_album">Album</th>
+		</tr>
 	</thead>
-	<tbody>
+	<tbody id="playlist_songs">
+	{% comment %}
 	{% for song in songs %}
 		<tr class="{% cycle 'odd' 'even' %}">
 			<td class="playlist_votes">
@@ -55,6 +56,7 @@
 			<td>{{ song.album }}</td>
 		</tr>
 	{% endfor %}
+	{% endcomment %}
 	</tbody>
 </table>
 </div>
@@ -119,4 +121,3 @@
 </div>
 	
 {% endblock %}
-

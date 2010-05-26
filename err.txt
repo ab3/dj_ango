@@ -1,0 +1,63 @@
+Command loadfile: argument 2 isn't an integer.
+File not found: '/Users/abe/Code/dj_ango/music/01'
+Failed to open /Users/abe/Code/dj_ango/music/01.
+
+
+MPlayer interrupted by signal 2 in module: unknown
+Command loadfile: argument 2 isn't an integer.
+File not found: '/Users/abe/Code/dj_ango/music/01'
+Failed to open /Users/abe/Code/dj_ango/music/01.
+Command loadfile: argument 2 isn't an integer.
+File not found: '/Users/abe/Code/dj_ango/music/01'
+Failed to open /Users/abe/Code/dj_ango/music/01.
+Command loadfile: argument 2 isn't an integer.
+File not found: '/Users/abe/Code/dj_ango/music/01'
+Failed to open /Users/abe/Code/dj_ango/music/01.
+Command loadfile: argument 2 isn't an integer.
+File not found: '/Users/abe/Code/dj_ango/music/01'
+Failed to open /Users/abe/Code/dj_ango/music/01.
+Command loadfile: argument 2 isn't an integer.
+File not found: '/Users/abe/Code/dj_ango/music/11'
+Failed to open /Users/abe/Code/dj_ango/music/11.
+
+
+MPlayer interrupted by signal 2 in module: unknown
+Command loadfile: argument 2 isn't an integer.
+File not found: '/Users/abe/Code/dj_ango/music/01'
+Failed to open /Users/abe/Code/dj_ango/music/01.
+
+
+MPlayer interrupted by signal 2 in module: unknown
+
+
+MPlayer interrupted by signal 2 in module: unknown
+
+
+MPlayer interrupted by signal 2 in module: play_audio
+
+
+MPlayer interrupted by signal 2 in module: play_audio
+
+
+MPlayer interrupted by signal 1 in module: pause
+- MPlayer crashed. This shouldn't happen.
+  It can be a bug in the MPlayer code _or_ in your drivers _or_ in your
+  gcc version. If you think it's MPlayer's fault, please read
+  DOCS/HTML/en/bugreports.html and follow the instructions there. We can't and
+  won't help unless you provide this information when reporting a possible bug.
+File not found: '/Users/abe/Code/dj_ango/music/Reeperbahn-0.mp3'
+Failed to open /Users/abe/Code/dj_ango/music/Reeperbahn-0.mp3.
+File not found: '/Users/abe/Code/dj_ango/music/chan-0.mp3'
+Failed to open /Users/abe/Code/dj_ango/music/chan-0.mp3.
+
+
+MPlayer interrupted by signal 2 in module: unknown
+
+
+MPlayer interrupted by signal 2 in module: unknown
+
+
+MPlayer interrupted by signal 2 in module: unknown
+
+
+MPlayer interrupted by signal 2 in module: pause

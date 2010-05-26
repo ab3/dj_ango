@@ -5,8 +5,7 @@ MUSIC_PATH = '/Users/abe/Code/dj_ango/music/'
 
 def handle_upload_mp3file(f):
     nr  = 0
-    has_name = False
-    while not has_name:
+    while True:
         name = MUSIC_PATH+('-%s.' % nr).join(f.name.rsplit('.', 1))
         logging.debug('handle: %s', name)
         if os.path.isfile(name):
@@ -14,14 +13,15 @@ def handle_upload_mp3file(f):
         else:
             try:
                 destination = open(name, 'wb+')
-            except IOError:
+            except IOError, msg:
+                logging.debug('Handle error:\n'+msg)
                 return
             else:
                 for chunk in f.chunks():
                     destination.write(chunk)
                 destination.close()
-                return destination.name
-            has_name = True
+                return name
+    
 
 def handle_add_youtubevideo():
     pass
